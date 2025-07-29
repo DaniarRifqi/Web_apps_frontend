@@ -263,13 +263,12 @@ export default function ScanPage() {
               <div className="w-full">
                 <h3 className="text-lg md:text-xl font-bold text-green-800 mb-3">{language === 'id' ? 'Pratinjau Gambar' : 'Image Preview'}</h3>
                 <div className="relative aspect-square bg-green-50 rounded-xl overflow-hidden border border-green-200">
-                  {/* Ganti <img> dengan <Image> */}
                   <Image
                     src={imageUrl}
                     alt="Pratinjau Apel"
-                    fill // Mengisi area parent
-                    style={{ objectFit: 'cover' }} // Menjaga aspek rasio
-                    priority // Atau `loading="lazy"` jika tidak langsung terlihat
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    priority
                   />
                   {loading && (
                     <div className="absolute inset-0 bg-black/60 flex flex-col justify-center items-center text-white">
@@ -278,8 +277,8 @@ export default function ScanPage() {
                     </div>
                   )}
                 </div>
-                <div className="mt-4 flex gap-3 flex-col sm:flex-row">
-                  <form onSubmit={handleUpload} className="w-full">
+                <div className="mt-4 flex gap-3"> {/* Hapus flex-col dan sm:flex-row, biarkan flex gap-3 untuk default row */}
+                  <form onSubmit={handleUpload} className="w-full"> {/* Ubah w-full menjadi w-1/2 */}
                     <button
                       type="submit"
                       disabled={loading || !!predictionResults}
@@ -290,8 +289,9 @@ export default function ScanPage() {
                   </form>
                   <button
                     onClick={handleReset}
-                    title={language === 'id' ? 'Reset' : 'Reset'}
-                    className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition text-base"
+                    disabled={loading}
+                    // Ubah styling agar di mobile mengambil setengah lebar
+                    className="w-20px flex items-center justify-center gap-2 border border-gray-300 text-gray-700 bg-white font-bold py-3 px-4 rounded-full hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed shadow text-base"
                   >
                     <RefreshCcw size={20} />
                   </button>
