@@ -1,4 +1,4 @@
-import { X, History as HistoryIcon, Calendar, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react';
+import { X, History as HistoryIcon, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react'; // Hapus Calendar
 import React, { useState } from 'react';
 
 // Definisi Interface HistoryItem
@@ -17,7 +17,7 @@ interface HistoryModalProps {
   filter: { date: string; type: string };
   setFilter: React.Dispatch<React.SetStateAction<{ date: string; type: string }>>;
   language: string;
-  loading: boolean; // <-- PROPERTI 'loading' sudah ditambahkan
+  loading: boolean;
 }
 
 const HistoryModal: React.FC<HistoryModalProps> = ({
@@ -27,7 +27,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   filter,
   setFilter,
   language,
-  loading, // <-- Destructuring 'loading'
+  loading,
 }) => {
   const [localHistory, setLocalHistory] = useState<HistoryItem[]>(data);
   const [selected, setSelected] = useState<number | null>(null);
@@ -38,50 +38,52 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   }, [data]);
 
   // Filter and sort by date (newest first), then take the top 10
+  // --- PERUBAHAN DI SINI: filter.date dihapus dari filter logic
   const filteredHistory = localHistory
     .filter(item => {
-      const matchDate = filter.date ? item.date === filter.date : true;
-      const matchType = filter.type ? item.type === filter.type : true; // Perbaikan filter.type
-      return matchDate && matchType;
+      const matchType = filter.type ? item.type === filter.type : true;
+      return matchType;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10);
 
   // Hapus satu
   const handleDelete = async (id: number) => {
+    // --- PERUBAHAN DI SINI: Hapus confirm() untuk single delete
     try {
       const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
+      const responseData = await res.json(); // Mengganti 'data' menjadi 'responseData' untuk menghindari konflik nama
+      if (responseData.success) {
         setLocalHistory(h => h.filter(item => item.id !== id));
-        setSelected(null);
+        setSelected(null); // Deselect the item after deletion
       } else {
-        console.error('Failed to delete history item on server:', data.message || 'Unknown error');
+        console.error('Failed to delete history item on server:', responseData.message || 'Unknown error');
         alert(language === 'id' ? 'Gagal menghapus data di server!' : 'Failed to delete data on server!');
       }
-    } catch (error) { // Ubah err menjadi error
+    } catch (error) {
       console.error('Error contacting server for delete:', error);
       alert(language === 'id' ? 'Gagal menghubungi server!' : 'Failed to contact server!');
     }
   };
 
   // Hapus semua
-  const handleDeleteAll = async () => { // Jadikan async
+  const handleDeleteAll = async () => {
+    // --- PERUBAHAN DI SINI: confirm() tetap ada untuk delete all
     if (confirm(language === 'id' ? 'Apakah Anda yakin ingin menghapus semua riwayat?' : 'Are you sure you want to delete all history?')) {
       try {
         // Contoh: Panggil API untuk menghapus semua (jika ada)
         // const res = await fetch(`http://localhost:5000/api/history/clear-all`, { method: 'DELETE' });
-        // const data = await res.json();
-        // if (data.success) {
+        // const responseData = await res.json();
+        // if (responseData.success) {
         setLocalHistory([]);
         setSelected(null);
         setSelectAll(false);
         // } else {
-        //   alert('Gagal menghapus semua data di server!');
+        //   alert('Gagal menghapus semua data di server!');
         // }
       } catch (error) {
         console.error('Error deleting all history:', error);
-        alert('Gagal menghapus semua riwayat!');
+        alert(language === 'id' ? 'Gagal menghapus semua riwayat!' : 'Failed to delete all history!');
       }
     }
   };
@@ -119,7 +121,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         </div>
         {/* Filter */}
         <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 border-b border-slate-100">
-          <div className="flex items-center gap-1 w-full sm:w-auto">
+          {/* --- PERUBAHAN DI SINI: Hapus input tanggal */}
+          {/* <div className="flex items-center gap-1 w-full sm:w-auto">
             <Calendar size={13} className="text-slate-500" />
             <input
               type="date"
@@ -128,7 +131,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
               className="border border-slate-300 rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition w-full sm:w-auto"
               placeholder="dd/mm/yyyy"
             />
-          </div>
+          </div> */}
           <div className="flex items-center gap-1 w-full sm:w-auto">
             <Filter size={13} className="text-slate-500" />
             <select
@@ -144,7 +147,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
           </div>
         </div>
         {/* Tabel/List History */}
-        <div className="overflow-x-auto px-1 sm:px-4 py-2 sm:py-3">
+        {/* --- PERUBAHAN DI SINI: Atur overflow-x-hidden agar tidak scroll horizontal */}
+        <div className="overflow-x-hidden px-1 sm:px-4 py-2 sm:py-3">
           {/* Indikator loading */}
           {loading ? (
             <div className="flex justify-center items-center py-10">
@@ -155,12 +159,14 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
             <table className="min-w-full text-[11px] sm:text-xs border-separate border-spacing-0">
               <thead>
                 <tr className="bg-blue-50 text-blue-900">
-                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Tanggal' : 'Date'}</th>
+                  {/* --- PERUBAHAN DI SINI: Hapus header Tanggal */}
+                  {/* <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Tanggal' : 'Date'}</th> */}
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Gambar' : 'Image'}</th>
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Jenis' : 'Type'}</th>
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-right whitespace-nowrap">{language === 'id' ? 'Keyakinan' : 'Confidence'}</th>
-                  {filteredHistory.length > 0 && (selected !== null || selectAll) && (
-                    <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-12 sm:w-16">
+                  {/* --- PERUBAHAN DI SINI: Selalu alokasikan ruang untuk kolom aksi */}
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-[60px]"> {/* Lebar fix, bisa disesuaikan */}
+                    {filteredHistory.length > 0 && (selected !== null || selectAll) ? (
                       <div className="flex items-center justify-center gap-1">
                         <button
                           className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-1"
@@ -186,14 +192,18 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                           </button>
                         )}
                       </div>
-                    </th>
-                  )}
+                    ) : (
+                      // Placeholder agar lebar kolom tetap
+                      <div className="h-4"></div> // Kosongkan, tapi jaga tinggi agar header tetap rapi
+                    )}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-slate-400">
+                    {/* --- PERUBAHAN DI SINI: Colspan disesuaikan karena 1 kolom (Tanggal) dihapus */}
+                    <td colSpan={4} className="text-center py-6 text-slate-400">
                       {language === 'id' ? 'Tidak ada data.' : 'No data.'}
                     </td>
                   </tr>
@@ -209,7 +219,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                         setSelectAll(false);
                       }}
                     >
-                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 whitespace-nowrap">{item.date}</td>
+                      {/* --- PERUBAHAN DI SINI: Hapus cell Tanggal */}
+                      {/* <td className="py-2 px-2 sm:px-3 border-b border-slate-100 whitespace-nowrap">{item.date}</td> */}
                       <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
                         <img src={item.image} alt="history" className="w-8 h-8 object-contain rounded border bg-white shadow-sm" />
                       </td>
@@ -224,34 +235,33 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                         </span>
                       </td>
                       <td className="py-2 px-2 sm:px-3 border-b border-slate-100 font-semibold text-right whitespace-nowrap">{item.confidence}%</td>
-                      {(selected === item.id && !selectAll) && (
-                        <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center flex gap-1 justify-center">
-                          <button
-                            className="inline-flex items-center justify-center text-red-500 hover:bg-red-100 rounded-full p-1"
-                            title={language === 'id' ? 'Hapus' : 'Delete'}
-                            onClick={e => {
-                              e.stopPropagation();
-                              handleDelete(item.id);
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                          <button
-                            className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
-                            title={language === 'id' ? 'Batal' : 'Cancel'}
-                            onClick={e => {
-                              e.stopPropagation();
-                              setSelected(null);
-                            }}
-                          >
-                            <X size={13} />
-                          </button>
-                        </td>
-                      )}
-                      {/* Pastikan tidak ada td kosong di sini jika tidak ada aksi yang muncul */}
-                      {filteredHistory.length > 0 && !(selected === item.id || selectAll) && (
-                        <td className="py-2 px-2 sm:px-3 border-b border-slate-100"></td>
-                      )}
+                      {/* --- PERUBAHAN DI SINI: Selalu alokasikan ruang untuk aksi */}
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center w-[60px]"> {/* Lebar fix sama dengan header */}
+                        {(selected === item.id && !selectAll) && (
+                          <div className="flex gap-1 justify-center">
+                            <button
+                              className="inline-flex items-center justify-center text-red-500 hover:bg-red-100 rounded-full p-1"
+                              title={language === 'id' ? 'Hapus' : 'Delete'}
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                            <button
+                              className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
+                              title={language === 'id' ? 'Batal' : 'Cancel'}
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSelected(null);
+                              }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
