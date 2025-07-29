@@ -1,4 +1,4 @@
-import { X, History as HistoryIcon, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react'; // Hapus Calendar
+import { X, History as HistoryIcon, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 // Definisi Interface HistoryItem
@@ -38,7 +38,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   }, [data]);
 
   // Filter and sort by date (newest first), then take the top 10
-  // --- PERUBAHAN DI SINI: filter.date dihapus dari filter logic
   const filteredHistory = localHistory
     .filter(item => {
       const matchType = filter.type ? item.type === filter.type : true;
@@ -49,10 +48,9 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
 
   // Hapus satu
   const handleDelete = async (id: number) => {
-    // --- PERUBAHAN DI SINI: Hapus confirm() untuk single delete
     try {
       const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/${id}`, { method: 'DELETE' });
-      const responseData = await res.json(); // Mengganti 'data' menjadi 'responseData' untuk menghindari konflik nama
+      const responseData = await res.json();
       if (responseData.success) {
         setLocalHistory(h => h.filter(item => item.id !== id));
         setSelected(null); // Deselect the item after deletion
@@ -68,22 +66,24 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
 
   // Hapus semua
   const handleDeleteAll = async () => {
-    // --- PERUBAHAN DI SINI: confirm() tetap ada untuk delete all
     if (confirm(language === 'id' ? 'Apakah Anda yakin ingin menghapus semua riwayat?' : 'Are you sure you want to delete all history?')) {
       try {
-        // Contoh: Panggil API untuk menghapus semua (jika ada)
-        // const res = await fetch(`http://localhost:5000/api/history/clear-all`, { method: 'DELETE' });
-        // const responseData = await res.json();
-        // if (responseData.success) {
-        setLocalHistory([]);
-        setSelected(null);
-        setSelectAll(false);
-        // } else {
-        //   alert('Gagal menghapus semua data di server!');
-        // }
+        // --- PERBAIKAN DI SINI: Mengaktifkan panggilan API untuk menghapus semua
+        const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/clear-all`, { method: 'DELETE' });
+        const responseData = await res.json();
+
+        if (responseData.success) { // Asumsi backend mengembalikan { success: true }
+          setLocalHistory([]);
+          setSelected(null);
+          setSelectAll(false);
+          alert(language === 'id' ? 'Semua riwayat berhasil dihapus!' : 'All history deleted successfully!'); // Pemberitahuan sukses
+        } else {
+          console.error('Failed to delete all history on server:', responseData.message || 'Unknown error');
+          alert(language === 'id' ? 'Gagal menghapus semua data di server!' : 'Failed to delete all data on server!');
+        }
       } catch (error) {
         console.error('Error deleting all history:', error);
-        alert(language === 'id' ? 'Gagal menghapus semua riwayat!' : 'Failed to delete all history!');
+        alert(language === 'id' ? 'Gagal menghubungi server atau menghapus semua riwayat!' : 'Failed to contact server or delete all history!');
       }
     }
   };
@@ -121,17 +121,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         </div>
         {/* Filter */}
         <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-slate-50 border-b border-slate-100">
-          {/* --- PERUBAHAN DI SINI: Hapus input tanggal */}
-          {/* <div className="flex items-center gap-1 w-full sm:w-auto">
-            <Calendar size={13} className="text-slate-500" />
-            <input
-              type="date"
-              value={filter.date}
-              onChange={e => setFilter(f => ({ ...f, date: e.target.value }))}
-              className="border border-slate-300 rounded-lg px-2 py-1 text-xs focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition w-full sm:w-auto"
-              placeholder="dd/mm/yyyy"
-            />
-          </div> */}
           <div className="flex items-center gap-1 w-full sm:w-auto">
             <Filter size={13} className="text-slate-500" />
             <select
@@ -147,7 +136,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
           </div>
         </div>
         {/* Tabel/List History */}
-        {/* --- PERUBAHAN DI SINI: Atur overflow-x-hidden agar tidak scroll horizontal */}
         <div className="overflow-x-hidden px-1 sm:px-4 py-2 sm:py-3">
           {/* Indikator loading */}
           {loading ? (
@@ -159,13 +147,10 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
             <table className="min-w-full text-[11px] sm:text-xs border-separate border-spacing-0">
               <thead>
                 <tr className="bg-blue-50 text-blue-900">
-                  {/* --- PERUBAHAN DI SINI: Hapus header Tanggal */}
-                  {/* <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Tanggal' : 'Date'}</th> */}
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Gambar' : 'Image'}</th>
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Jenis' : 'Type'}</th>
                   <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-right whitespace-nowrap">{language === 'id' ? 'Keyakinan' : 'Confidence'}</th>
-                  {/* --- PERUBAHAN DI SINI: Selalu alokasikan ruang untuk kolom aksi */}
-                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-[60px]"> {/* Lebar fix, bisa disesuaikan */}
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-[60px]">
                     {filteredHistory.length > 0 && (selected !== null || selectAll) ? (
                       <div className="flex items-center justify-center gap-1">
                         <button
@@ -193,8 +178,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                         )}
                       </div>
                     ) : (
-                      // Placeholder agar lebar kolom tetap
-                      <div className="h-4"></div> // Kosongkan, tapi jaga tinggi agar header tetap rapi
+                      <div className="h-4"></div>
                     )}
                   </th>
                 </tr>
@@ -202,7 +186,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
               <tbody>
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    {/* --- PERUBAHAN DI SINI: Colspan disesuaikan karena 1 kolom (Tanggal) dihapus */}
                     <td colSpan={4} className="text-center py-6 text-slate-400">
                       {language === 'id' ? 'Tidak ada data.' : 'No data.'}
                     </td>
@@ -219,8 +202,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                         setSelectAll(false);
                       }}
                     >
-                      {/* --- PERUBAHAN DI SINI: Hapus cell Tanggal */}
-                      {/* <td className="py-2 px-2 sm:px-3 border-b border-slate-100 whitespace-nowrap">{item.date}</td> */}
                       <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
                         <img src={item.image} alt="history" className="w-8 h-8 object-contain rounded border bg-white shadow-sm" />
                       </td>
@@ -235,8 +216,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
                         </span>
                       </td>
                       <td className="py-2 px-2 sm:px-3 border-b border-slate-100 font-semibold text-right whitespace-nowrap">{item.confidence}%</td>
-                      {/* --- PERUBAHAN DI SINI: Selalu alokasikan ruang untuk aksi */}
-                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center w-[60px]"> {/* Lebar fix sama dengan header */}
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center w-[60px]">
                         {(selected === item.id && !selectAll) && (
                           <div className="flex gap-1 justify-center">
                             <button
