@@ -1,7 +1,8 @@
 import { X, History as HistoryIcon, Calendar, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 
-interface HistoryItem {
+// Definisi Interface HistoryItem
+export interface HistoryItem {
   id: number;
   date: string;
   image: string;
@@ -16,7 +17,7 @@ interface HistoryModalProps {
   filter: { date: string; type: string };
   setFilter: React.Dispatch<React.SetStateAction<{ date: string; type: string }>>;
   language: string;
-  loading: boolean; // <-- TAMBAHKAN PROPERTI 'loading' DI SINI
+  loading: boolean; // <-- PROPERTI 'loading' sudah ditambahkan
 }
 
 const HistoryModal: React.FC<HistoryModalProps> = ({
@@ -26,7 +27,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   filter,
   setFilter,
   language,
-  loading, // <-- TAMBAHKAN INI JUGA DI DESTRUCTURING PROPS
+  loading, // <-- Destructuring 'loading'
 }) => {
   const [localHistory, setLocalHistory] = useState<HistoryItem[]>(data);
   const [selected, setSelected] = useState<number | null>(null);
@@ -40,7 +41,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   const filteredHistory = localHistory
     .filter(item => {
       const matchDate = filter.date ? item.date === filter.date : true;
-      const matchType = filter.type ? item.type === item.type : true; // Perbaiki: seharusnya item.type === filter.type
+      const matchType = filter.type ? item.type === filter.type : true; // Perbaikan filter.type
       return matchDate && matchType;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -49,28 +50,26 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   // Hapus satu
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/${id}`, { method: 'DELETE' });
+      const res = await fetch(`http://localhost:5000/api/history/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setLocalHistory(h => h.filter(item => item.id !== id));
         setSelected(null);
       } else {
-        // Tambahkan penanganan error yang lebih informatif
         console.error('Failed to delete history item on server:', data.message || 'Unknown error');
         alert(language === 'id' ? 'Gagal menghapus data di server!' : 'Failed to delete data on server!');
       }
-    } catch (err) {
-      // Gunakan `err` untuk logging
-      console.error('Error contacting server for delete:', err);
+    } catch (error) { // Ubah err menjadi error
+      console.error('Error contacting server for delete:', error);
       alert(language === 'id' ? 'Gagal menghubungi server!' : 'Failed to contact server!');
     }
   };
 
   // Hapus semua
-  const handleDeleteAll = async () => { // Jadikan async jika akan memanggil API
+  const handleDeleteAll = async () => { // Jadikan async
     if (confirm(language === 'id' ? 'Apakah Anda yakin ingin menghapus semua riwayat?' : 'Are you sure you want to delete all history?')) {
       try {
-        // Contoh: Panggil API untuk menghapus semua
+        // Contoh: Panggil API untuk menghapus semua (jika ada)
         // const res = await fetch(`http://localhost:5000/api/history/clear-all`, { method: 'DELETE' });
         // const data = await res.json();
         // if (data.success) {
@@ -80,13 +79,12 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         // } else {
         //   alert('Gagal menghapus semua data di server!');
         // }
-      } catch (err) {
-        console.error('Error deleting all history:', err);
+      } catch (error) {
+        console.error('Error deleting all history:', error);
         alert('Gagal menghapus semua riwayat!');
       }
     }
   };
-
 
   // Pilih semua
   const handleSelectAll = () => {
@@ -147,7 +145,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         </div>
         {/* Tabel/List History */}
         <div className="overflow-x-auto px-1 sm:px-4 py-2 sm:py-3">
-          {/* Tambahkan indikator loading di sini */}
+          {/* Indikator loading */}
           {loading ? (
             <div className="flex justify-center items-center py-10">
               <Loader2 className="animate-spin text-blue-500" size={24} />

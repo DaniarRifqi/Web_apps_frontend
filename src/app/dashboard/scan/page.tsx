@@ -3,17 +3,20 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useCallback, useEffect as useEffect2 } from 'react';
-// Hapus ikon yang tidak digunakan (X, Calendar, Filter)
 import { ScanLine, Upload, FileImage, Loader2, RefreshCcw, Info, History as HistoryIcon } from 'lucide-react';
 import { useLanguage } from '../../components/LanguageContext';
 import HistoryModal from './HistoryModal';
 import Image from 'next/image'; // Tambahkan import Image dari next/image
+import { HistoryItem } from './HistoryModal'; // <-- IMPORT HistoryItem di sini
 
 export default function ScanPage() {
   const { language } = useLanguage();
   const router = useRouter();
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
+      // Perhatikan: Logika redirect ini mungkin perlu ditinjau jika Anda ingin pengguna tetap di /dashboard/settings
+      // saat navigasi internal. Jika tujuannya hanya untuk redirect dari /dashboard (tanpa sub-path),
+      // maka kondisinya harus lebih spesifik. Untuk saat ini, kita biarkan sesuai kode asli Anda.
       router.replace('/');
     }
   }, [router]);
@@ -29,25 +32,17 @@ export default function ScanPage() {
   // --- History State & Data dari Backend ---
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState({ date: '', type: '' });
-  // Variabel `loadingHistory` sekarang akan digunakan di `HistoryModal` atau di sini untuk indikator loading.
-  // Jika tidak digunakan di UI, pertimbangkan untuk menghapusnya.
-  // Untuk tujuan menghilangkan error, mari kita asumsikan Anda ingin menggunakannya.
-  // Jika tidak digunakan, Anda bisa menghapus baris ini:
-  const [historyData, setHistoryData] = useState<any[]>([]); // Ganti 'any[]' dengan tipe yang lebih spesifik jika memungkinkan, misal `HistoryItem[]`
-  const [loadingHistory, setLoadingHistory] = useState(false); // Ini tidak lagi 'never used' jika digunakan di HistoryModal.
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]); // <-- Tipe HistoryItem[]
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // useEffect untuk memuat data history saat modal dibuka
   useEffect2(() => {
     if (showHistory) {
-      setLoadingHistory(true); // Digunakan di sini
+      setLoadingHistory(true);
       fetch('https://webappsbackend-production.up.railway.app/api/history/')
         .then(res => res.json())
-        .then(data => {
-          // Tambahkan base URL backend ke field image
-          // Perbaiki tipe `item` menjadi lebih spesifik atau tetap `any` jika strukturnya sangat dinamis,
-          // tetapi tambahkan komentar untuk justifikasi atau buat interface.
-          // Untuk menghilangkan error, `any` diizinkan jika itu yang Anda inginkan,
-          // namun praktik terbaik adalah mendefinisikan interface untuk `HistoryItem`.
-          const formatted = data.map((item: { image: string; date: string }) => ({ // Contoh: Definisikan tipe untuk `item`
+        .then((data: HistoryItem[]) => { // <-- Tipe HistoryItem[] di sini
+          const formatted = data.map((item) => ({
             ...item,
             image: item.image.startsWith('http')
               ? item.image
@@ -55,11 +50,11 @@ export default function ScanPage() {
             date: item.date ? item.date.slice(0, 10) : '',
           }));
           setHistoryData(formatted);
-          setLoadingHistory(false); // Digunakan di sini
+          setLoadingHistory(false);
         })
-        .catch((error) => { // Ganti `err` menjadi `error` dan gunakan
-          console.error("Failed to fetch history:", error); // Gunakan `error`
-          setLoadingHistory(false); // Digunakan di sini
+        .catch((error) => {
+          console.error("Failed to fetch history:", error);
+          setLoadingHistory(false);
         });
     }
   }, [showHistory]);
@@ -69,8 +64,8 @@ export default function ScanPage() {
 
   // --- Handlers ---
 
-  // Fungsi terpusat untuk memproses file yang dipilih
-  const processImageFile = (file: File) => {
+  // Fungsi terpusat untuk memproses file yang dipilih - dibungkus dengan useCallback
+  const processImageFile = useCallback((file: File) => {
     if (file && file.type.startsWith('image/')) {
       setSelectedImage(file);
       setImageUrl(URL.createObjectURL(file));
@@ -79,7 +74,7 @@ export default function ScanPage() {
     } else {
       alert(language === 'id' ? 'Tipe file tidak valid. Silakan pilih file gambar.' : 'Invalid file type. Please select an image file.');
     }
-  };
+  }, [language, setSelectedImage, setImageUrl, setPredictionResults, setConclusion]); // <-- Dependensi
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -144,8 +139,8 @@ export default function ScanPage() {
           type: ""
         });
       }
-    } catch (error) { // Ubah `err` menjadi `error` dan gunakan
-      console.error("Prediction error:", error); // Gunakan `error` untuk logging
+    } catch (error) {
+      console.error("Prediction error:", error);
       setPredictionResults(null);
       setConclusion({
         text: language === 'id'
@@ -186,7 +181,7 @@ export default function ScanPage() {
     if (file) {
       processImageFile(file);
     }
-  }, [processImageFile]); // Tambahkan `processImageFile` sebagai dependensi di sini
+  }, [processImageFile]); // `processImageFile` sebagai dependensi di sini
 
   // Styling dinamis untuk kotak kesimpulan
   const conclusionStyles = {
@@ -237,7 +232,7 @@ export default function ScanPage() {
           filter={historyFilter}
           setFilter={setHistoryFilter}
           language={language}
-          loading={loadingHistory} // Gunakan loadingHistory di sini
+          loading={loadingHistory}
         />
         {/* Card Utama */}
         <div className="bg-white/90 p-6 md:p-10 rounded-2xl border border-green-100 shadow-xl">
