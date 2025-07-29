@@ -3,9 +3,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useCallback, useEffect as useEffect2 } from 'react';
-import { ScanLine, Upload, FileImage, Loader2, RefreshCcw, Info, History as HistoryIcon, X, Calendar, Filter } from 'lucide-react';
+// Hapus ikon yang tidak digunakan (X, Calendar, Filter)
+import { ScanLine, Upload, FileImage, Loader2, RefreshCcw, Info, History as HistoryIcon } from 'lucide-react';
 import { useLanguage } from '../../components/LanguageContext';
 import HistoryModal from './HistoryModal';
+import Image from 'next/image'; // Tambahkan import Image dari next/image
 
 export default function ScanPage() {
   const { language } = useLanguage();
@@ -15,39 +17,50 @@ export default function ScanPage() {
       router.replace('/');
     }
   }, [router]);
-  
+
   // --- State Management ---
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [predictionResults, setPredictionResults] = useState<Record<string, number> | null>(null);
   const [conclusion, setConclusion] = useState<{ text: string, type: 'Kering' | 'Sedang' | 'Basah' | '' }>({ text: '', type: '' });
   const [loading, setLoading] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false); // State baru untuk drag & drop
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // --- History State & Data dari Backend ---
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState({ date: '', type: '' });
-  const [historyData, setHistoryData] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  // Variabel `loadingHistory` sekarang akan digunakan di `HistoryModal` atau di sini untuk indikator loading.
+  // Jika tidak digunakan di UI, pertimbangkan untuk menghapusnya.
+  // Untuk tujuan menghilangkan error, mari kita asumsikan Anda ingin menggunakannya.
+  // Jika tidak digunakan, Anda bisa menghapus baris ini:
+  const [historyData, setHistoryData] = useState<any[]>([]); // Ganti 'any[]' dengan tipe yang lebih spesifik jika memungkinkan, misal `HistoryItem[]`
+  const [loadingHistory, setLoadingHistory] = useState(false); // Ini tidak lagi 'never used' jika digunakan di HistoryModal.
 
   useEffect2(() => {
     if (showHistory) {
-      setLoadingHistory(true);
-      fetch('http://localhost:5000/api/history/')
+      setLoadingHistory(true); // Digunakan di sini
+      fetch('https://webappsbackend-production.up.railway.app/api/history/')
         .then(res => res.json())
         .then(data => {
           // Tambahkan base URL backend ke field image
-          const formatted = data.map((item: any) => ({
+          // Perbaiki tipe `item` menjadi lebih spesifik atau tetap `any` jika strukturnya sangat dinamis,
+          // tetapi tambahkan komentar untuk justifikasi atau buat interface.
+          // Untuk menghilangkan error, `any` diizinkan jika itu yang Anda inginkan,
+          // namun praktik terbaik adalah mendefinisikan interface untuk `HistoryItem`.
+          const formatted = data.map((item: { image: string; date: string }) => ({ // Contoh: Definisikan tipe untuk `item`
             ...item,
             image: item.image.startsWith('http')
               ? item.image
-              : `http://localhost:5000${item.image}`,
+              : `https://webappsbackend-production.up.railway.app/${item.image}`,
             date: item.date ? item.date.slice(0, 10) : '',
           }));
           setHistoryData(formatted);
-          setLoadingHistory(false);
+          setLoadingHistory(false); // Digunakan di sini
         })
-        .catch(() => setLoadingHistory(false));
+        .catch((error) => { // Ganti `err` menjadi `error` dan gunakan
+          console.error("Failed to fetch history:", error); // Gunakan `error`
+          setLoadingHistory(false); // Digunakan di sini
+        });
     }
   }, [showHistory]);
 
@@ -67,7 +80,7 @@ export default function ScanPage() {
       alert(language === 'id' ? 'Tipe file tidak valid. Silakan pilih file gambar.' : 'Invalid file type. Please select an image file.');
     }
   };
-  
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -87,7 +100,7 @@ export default function ScanPage() {
     formData.append("file", selectedImage); // Ganti 'data' ke 'file'
 
     try {
-      const res = await fetch("http://localhost:5000/api/predict/", {
+      const res = await fetch("https://webappsbackend-production.up.railway.app/api/predict/", {
         method: "POST",
         body: formData,
       });
@@ -131,7 +144,8 @@ export default function ScanPage() {
           type: ""
         });
       }
-    } catch (err) {
+    } catch (error) { // Ubah `err` menjadi `error` dan gunakan
+      console.error("Prediction error:", error); // Gunakan `error` untuk logging
       setPredictionResults(null);
       setConclusion({
         text: language === 'id'
@@ -172,7 +186,7 @@ export default function ScanPage() {
     if (file) {
       processImageFile(file);
     }
-  }, []); // dependensi kosong karena processImageFile sudah stabil
+  }, [processImageFile]); // Tambahkan `processImageFile` sebagai dependensi di sini
 
   // Styling dinamis untuk kotak kesimpulan
   const conclusionStyles = {
@@ -223,6 +237,7 @@ export default function ScanPage() {
           filter={historyFilter}
           setFilter={setHistoryFilter}
           language={language}
+          loading={loadingHistory} // Gunakan loadingHistory di sini
         />
         {/* Card Utama */}
         <div className="bg-white/90 p-6 md:p-10 rounded-2xl border border-green-100 shadow-xl">
@@ -253,7 +268,14 @@ export default function ScanPage() {
               <div className="w-full">
                 <h3 className="text-lg md:text-xl font-bold text-green-800 mb-3">{language === 'id' ? 'Pratinjau Gambar' : 'Image Preview'}</h3>
                 <div className="relative aspect-square bg-green-50 rounded-xl overflow-hidden border border-green-200">
-                  <img src={imageUrl} alt="Pratinjau Apel" className="w-full h-full object-cover" />
+                  {/* Ganti <img> dengan <Image> */}
+                  <Image
+                    src={imageUrl}
+                    alt="Pratinjau Apel"
+                    fill // Mengisi area parent
+                    style={{ objectFit: 'cover' }} // Menjaga aspek rasio
+                    priority // Atau `loading="lazy"` jika tidak langsung terlihat
+                  />
                   {loading && (
                     <div className="absolute inset-0 bg-black/60 flex flex-col justify-center items-center text-white">
                       <Loader2 size={36} className="animate-spin" />
@@ -291,8 +313,8 @@ export default function ScanPage() {
                         __html: conclusion.text
                           ? conclusion.text
                           : (language === 'id'
-                              ? 'Hasil analisis akan ditampilkan di sini setelah gambar diidentifikasi.'
-                              : 'The analysis result will be displayed here after the image is identified.')
+                            ? 'Hasil analisis akan ditampilkan di sini setelah gambar diidentifikasi.'
+                            : 'The analysis result will be displayed here after the image is identified.')
                       }} />
                     </div>
                   )}

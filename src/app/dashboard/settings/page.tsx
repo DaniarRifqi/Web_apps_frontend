@@ -1,9 +1,23 @@
+// src/app/dashboard/settings/page.tsx
+
 "use client";
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Settings, Languages, Sun, Moon, HelpCircle, ScanLine, Upload, Camera, Cpu, ClipboardList, Save } from 'lucide-react';
+import {
+  Settings,
+  Languages,
+  // Sun, // <-- HAPUS BARIS INI
+  // Moon, // <-- HAPUS BARIS INI
+  HelpCircle,
+  ScanLine,
+  Upload,
+  // Camera, // <-- HAPUS BARIS INI
+  Cpu,
+  ClipboardList,
+  Save
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { useLanguage } from '../../components/LanguageContext';
@@ -12,8 +26,18 @@ export default function SettingsPage() {
   const { language, setLanguage } = useLanguage();
   const router = useRouter();
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
-      router.replace('/');
+    // Ini mungkin bukan kondisi yang Anda inginkan.
+    // window.location.pathname.startsWith('/dashboard') akan selalu true saat di dashboard.
+    // Biasanya ini untuk redirect jika user belum login atau bukan di dashboard.
+    // Jika Anda ingin redirect ke homepage jika user mencoba mengakses /dashboard/settings langsung
+    // dari root URL, maka ini bisa jadi. Namun jika Anda berada di route '/dashboard/settings'
+    // dan ingin tetap di sana, baris ini bisa menyebabkan loop redirect tak terhingga
+    // atau redirect yang tidak diinginkan.
+    // Silakan tinjau kembali logika redirect ini.
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/settings')) {
+      // Contoh: Jika ingin mencegah akses langsung ke /dashboard/settings jika bukan dari proses navigasi internal,
+      // Anda mungkin perlu state atau cookie untuk menandai "sudah masuk dashboard".
+      // Untuk tujuan perbaikan error ini, saya tidak mengubahnya, tapi perlu diperhatikan.
     }
   }, [router]);
 

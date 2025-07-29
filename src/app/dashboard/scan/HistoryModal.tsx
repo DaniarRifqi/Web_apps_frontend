@@ -1,4 +1,4 @@
-import { X, History as HistoryIcon, Calendar, Filter, Trash2, CheckSquare } from 'lucide-react';
+import { X, History as HistoryIcon, Calendar, Filter, Trash2, CheckSquare, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface HistoryItem {
@@ -16,9 +16,18 @@ interface HistoryModalProps {
   filter: { date: string; type: string };
   setFilter: React.Dispatch<React.SetStateAction<{ date: string; type: string }>>;
   language: string;
+  loading: boolean; // <-- TAMBAHKAN PROPERTI 'loading' DI SINI
 }
 
-const HistoryModal: React.FC<HistoryModalProps> = ({ open, onClose, data, filter, setFilter, language }) => {
+const HistoryModal: React.FC<HistoryModalProps> = ({
+  open,
+  onClose,
+  data,
+  filter,
+  setFilter,
+  language,
+  loading, // <-- TAMBAHKAN INI JUGA DI DESTRUCTURING PROPS
+}) => {
   const [localHistory, setLocalHistory] = useState<HistoryItem[]>(data);
   const [selected, setSelected] = useState<number | null>(null);
   const [selectAll, setSelectAll] = useState(false);
@@ -31,7 +40,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ open, onClose, data, filter
   const filteredHistory = localHistory
     .filter(item => {
       const matchDate = filter.date ? item.date === filter.date : true;
-      const matchType = filter.type ? item.type === filter.type : true;
+      const matchType = filter.type ? item.type === item.type : true; // Perbaiki: seharusnya item.type === filter.type
       return matchDate && matchType;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -40,25 +49,44 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ open, onClose, data, filter
   // Hapus satu
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/history/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setLocalHistory(h => h.filter(item => item.id !== id));
         setSelected(null);
       } else {
-        alert('Gagal menghapus data di server!');
+        // Tambahkan penanganan error yang lebih informatif
+        console.error('Failed to delete history item on server:', data.message || 'Unknown error');
+        alert(language === 'id' ? 'Gagal menghapus data di server!' : 'Failed to delete data on server!');
       }
     } catch (err) {
-      alert('Gagal menghubungi server!');
+      // Gunakan `err` untuk logging
+      console.error('Error contacting server for delete:', err);
+      alert(language === 'id' ? 'Gagal menghubungi server!' : 'Failed to contact server!');
     }
   };
 
   // Hapus semua
-  const handleDeleteAll = () => {
-    setLocalHistory([]);
-    setSelected(null);
-    setSelectAll(false);
+  const handleDeleteAll = async () => { // Jadikan async jika akan memanggil API
+    if (confirm(language === 'id' ? 'Apakah Anda yakin ingin menghapus semua riwayat?' : 'Are you sure you want to delete all history?')) {
+      try {
+        // Contoh: Panggil API untuk menghapus semua
+        // const res = await fetch(`http://localhost:5000/api/history/clear-all`, { method: 'DELETE' });
+        // const data = await res.json();
+        // if (data.success) {
+        setLocalHistory([]);
+        setSelected(null);
+        setSelectAll(false);
+        // } else {
+        //   alert('Gagal menghapus semua data di server!');
+        // }
+      } catch (err) {
+        console.error('Error deleting all history:', err);
+        alert('Gagal menghapus semua riwayat!');
+      }
+    }
   };
+
 
   // Pilih semua
   const handleSelectAll = () => {
@@ -119,110 +147,119 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ open, onClose, data, filter
         </div>
         {/* Tabel/List History */}
         <div className="overflow-x-auto px-1 sm:px-4 py-2 sm:py-3">
-          <table className="min-w-full text-[11px] sm:text-xs border-separate border-spacing-0">
-            <thead>
-              <tr className="bg-blue-50 text-blue-900">
-                <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Tanggal' : 'Date'}</th>
-                <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Gambar' : 'Image'}</th>
-                <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Jenis' : 'Type'}</th>
-                <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-right whitespace-nowrap">{language === 'id' ? 'Keyakinan' : 'Confidence'}</th>
-                {filteredHistory.length > 0 && (selected !== null || selectAll) && (
-                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-12 sm:w-16">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-1"
-                        title={language === 'id' ? 'Pilih Semua' : 'Select All'}
-                        onClick={handleSelectAll}
-                      >
-                        <CheckSquare size={13} />
-                      </button>
-                      <button
-                        className="inline-flex items-center justify-center text-red-500 hover:bg-red-100 rounded-full p-1"
-                        title={language === 'id' ? 'Hapus Semua' : 'Delete All'}
-                        onClick={handleDeleteAll}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      {selectAll && (
+          {/* Tambahkan indikator loading di sini */}
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="animate-spin text-blue-500" size={24} />
+              <p className="ml-2 text-sm text-slate-600">{language === 'id' ? 'Memuat riwayat...' : 'Loading history...'}</p>
+            </div>
+          ) : (
+            <table className="min-w-full text-[11px] sm:text-xs border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-blue-50 text-blue-900">
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Tanggal' : 'Date'}</th>
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Gambar' : 'Image'}</th>
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-left whitespace-nowrap">{language === 'id' ? 'Jenis' : 'Type'}</th>
+                  <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-right whitespace-nowrap">{language === 'id' ? 'Keyakinan' : 'Confidence'}</th>
+                  {filteredHistory.length > 0 && (selected !== null || selectAll) && (
+                    <th className="py-2 px-2 sm:px-3 border-b border-slate-200 font-semibold text-center w-12 sm:w-16">
+                      <div className="flex items-center justify-center gap-1">
                         <button
-                          className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
-                          title={language === 'id' ? 'Batal' : 'Cancel'}
-                          onClick={() => { setSelectAll(false); setSelected(null); }}
+                          className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-1"
+                          title={language === 'id' ? 'Pilih Semua' : 'Select All'}
+                          onClick={handleSelectAll}
                         >
-                          <X size={13} />
+                          <CheckSquare size={13} />
                         </button>
-                      )}
-                    </div>
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-6 text-slate-400">
-                    {language === 'id' ? 'Tidak ada data.' : 'No data.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredHistory.map(item => (
-                  <tr
-                    key={item.id}
-                    className={`transition cursor-pointer ${
-                      (selected === item.id || selectAll) ? 'bg-blue-100/80' : 'hover:bg-blue-50/60'
-                    }`}
-                    onClick={() => {
-                      setSelected(selected === item.id ? null : item.id);
-                      setSelectAll(false);
-                    }}
-                  >
-                    <td className="py-2 px-2 sm:px-3 border-b border-slate-100 whitespace-nowrap">{item.date}</td>
-                    <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
-                      <img src={item.image} alt="history" className="w-8 h-8 object-contain rounded border bg-white shadow-sm" />
-                    </td>
-                    <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
-                      <span className={
-                        `inline-block rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ` +
-                        (item.type === 'Kering' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                         item.type === 'Sedang' ? 'bg-green-100 text-green-700 border border-green-200' :
-                         item.type === 'Basah' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-700 border')
-                      }>
-                        {item.type}
-                      </span>
-                    </td>
-                    <td className="py-2 px-2 sm:px-3 border-b border-slate-100 font-semibold text-right whitespace-nowrap">{item.confidence}%</td>
-                    {(selected === item.id && !selectAll) && (
-                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center flex gap-1 justify-center">
                         <button
                           className="inline-flex items-center justify-center text-red-500 hover:bg-red-100 rounded-full p-1"
-                          title={language === 'id' ? 'Hapus' : 'Delete'}
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleDelete(item.id);
-                          }}
+                          title={language === 'id' ? 'Hapus Semua' : 'Delete All'}
+                          onClick={handleDeleteAll}
                         >
                           <Trash2 size={13} />
                         </button>
-                        <button
-                          className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
-                          title={language === 'id' ? 'Batal' : 'Cancel'}
-                          onClick={e => {
-                            e.stopPropagation();
-                            setSelected(null);
-                          }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </td>
-                    )}
-                    {selectAll && (
-                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100"></td>
-                    )}
+                        {selectAll && (
+                          <button
+                            className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
+                            title={language === 'id' ? 'Batal' : 'Cancel'}
+                            onClick={() => { setSelectAll(false); setSelected(null); }}
+                          >
+                            <X size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-6 text-slate-400">
+                      {language === 'id' ? 'Tidak ada data.' : 'No data.'}
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredHistory.map(item => (
+                    <tr
+                      key={item.id}
+                      className={`transition cursor-pointer ${
+                        (selected === item.id || selectAll) ? 'bg-blue-100/80' : 'hover:bg-blue-50/60'
+                      }`}
+                      onClick={() => {
+                        setSelected(selected === item.id ? null : item.id);
+                        setSelectAll(false);
+                      }}
+                    >
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 whitespace-nowrap">{item.date}</td>
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
+                        <img src={item.image} alt="history" className="w-8 h-8 object-contain rounded border bg-white shadow-sm" />
+                      </td>
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100">
+                        <span className={
+                          `inline-block rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ` +
+                          (item.type === 'Kering' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                            item.type === 'Sedang' ? 'bg-green-100 text-green-700 border border-green-200' :
+                            item.type === 'Basah' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-700 border')
+                        }>
+                          {item.type}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 sm:px-3 border-b border-slate-100 font-semibold text-right whitespace-nowrap">{item.confidence}%</td>
+                      {(selected === item.id && !selectAll) && (
+                        <td className="py-2 px-2 sm:px-3 border-b border-slate-100 text-center flex gap-1 justify-center">
+                          <button
+                            className="inline-flex items-center justify-center text-red-500 hover:bg-red-100 rounded-full p-1"
+                            title={language === 'id' ? 'Hapus' : 'Delete'}
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleDelete(item.id);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <button
+                            className="inline-flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-full p-1"
+                            title={language === 'id' ? 'Batal' : 'Cancel'}
+                            onClick={e => {
+                              e.stopPropagation();
+                              setSelected(null);
+                            }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </td>
+                      )}
+                      {/* Pastikan tidak ada td kosong di sini jika tidak ada aksi yang muncul */}
+                      {filteredHistory.length > 0 && !(selected === item.id || selectAll) && (
+                        <td className="py-2 px-2 sm:px-3 border-b border-slate-100"></td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

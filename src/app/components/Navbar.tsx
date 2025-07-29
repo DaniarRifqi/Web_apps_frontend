@@ -30,8 +30,6 @@ const Navbar = () => {
   }, []);
 
   const textColor = scrolled ? 'text-green-800' : 'text-white';
-  const logoColor = scrolled ? '#4ade80' : '#fff';
-  const logoStroke = scrolled ? '#22c55e' : '#fff';
 
   return (
     <nav
