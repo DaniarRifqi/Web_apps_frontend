@@ -10,6 +10,10 @@ const menu = [
   { name: "Settings", href: "#settings" },
 ];
 
+interface NavbarProps {
+  currentPage: string; // Prop baru untuk menunjukkan halaman aktif
+}
+
 const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, href: string, closeMenu?: () => void) => {
   e.preventDefault();
   const id = href.replace('#', '');
@@ -19,10 +23,11 @@ const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, href
     if (closeMenu) {
       closeMenu(); // Tutup menu setelah klik jika fungsi diberikan
     }
+    // Tidak perlu lagi memanipulasi hash di sini karena kita mengandalkan prop currentPage
   }
 };
 
-const Navbar = () => {
+const Navbar: React.FC<NavbarProps> = ({ currentPage }) => { // Menerima prop currentPage
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State untuk menu mobile
 
@@ -31,7 +36,10 @@ const Navbar = () => {
       setScrolled(window.scrollY > 24);
     };
     window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   // Effect untuk mencegah scrolling body saat menu mobile terbuka
@@ -55,8 +63,28 @@ const Navbar = () => {
   };
 
   const textColor = scrolled ? 'text-green-800' : 'text-white';
-  // Untuk teks menu di drawer, agar tetap terlihat jelas di atas latar belakang transparan
-  const mobileMenuTextColor = 'text-white hover:text-green-600 transition-colors duration-300'; 
+
+  // Logika untuk menentukan warna teks di drawer mobile
+  // Menggunakan currentPage dari props
+  const getMobileMenuItemColor = () => {
+    // Jika currentPage adalah 'home', warna teks putih
+    // Untuk halaman lainnya, warna teks hijau
+    return currentPage === 'home' ? 'text-white' : 'text-green-700';
+  };
+
+  // Logika untuk menentukan background drawer mobile
+  const getMobileDrawerBackground = () => {
+    return currentPage === 'home' 
+      ? 'bg-black/20 backdrop-blur-md' 
+      : 'bg-white/60 backdrop-blur-md shadow-lg';
+  };
+
+  // Logika untuk menentukan warna tombol close di drawer mobile
+  const getMobileCloseButtonColor = () => {
+    return currentPage === 'home' 
+      ? 'text-white hover:bg-white/20' 
+      : 'text-green-700 hover:bg-green-100';
+  };
 
   return (
     <nav
@@ -105,15 +133,15 @@ const Navbar = () => {
       {/* Backdrop (Click to close) */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 md:hidden z-30" // Anda bisa mengubah bg-black/40 menjadi lebih transparan, misalnya bg-black/20 atau bahkan none jika Anda tidak ingin backdrop sama sekali
+          className="fixed inset-0 bg-black/40 md:hidden z-30"
           onClick={closeMobileMenu}
         ></div>
       )}
 
-      {/* Mobile Menu Drawer (from top) - JADI TRANSPARAN */}
+      {/* Mobile Menu Drawer (from top) */}
       <div
         className={`md:hidden fixed top-0 left-0 w-full 
-          bg-white/20 backdrop-blur-md shadow-lg // <-- PERUBAHAN UTAMA DI SINI
+          ${getMobileDrawerBackground()} // Menggunakan fungsi untuk background
           transition-transform transform ${
             isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full' 
           } duration-300 ease-in-out z-40`}
@@ -121,7 +149,7 @@ const Navbar = () => {
         <div className="flex justify-end p-4">
           <button
             onClick={toggleMobileMenu}
-            className="p-2 rounded-md text-white hover:bg-green-100"
+            className={`p-2 rounded-md transition-colors duration-300 ${getMobileCloseButtonColor()}`} // Menggunakan fungsi untuk warna tombol
             aria-label="Close mobile menu"
           >
             <X size={24} />
@@ -133,7 +161,7 @@ const Navbar = () => {
               <a
                 href={item.href}
                 onClick={e => handleNavClick(e, item.href, closeMobileMenu)}
-                className={`${mobileMenuTextColor} font-bold text-xl hover:text-green-600 transition-colors duration-300`}
+                className={`${getMobileMenuItemColor()} font-bold text-xl hover:text-green-600 transition-colors duration-300`}
               >
                 {item.name}
               </a>
