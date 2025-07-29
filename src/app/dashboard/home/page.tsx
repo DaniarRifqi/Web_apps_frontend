@@ -3,15 +3,19 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowDown } from "lucide-react";
 import { useLanguage } from '../../components/LanguageContext';
+import Image from 'next/image'; // Perbaikan di sini: Tambahkan 'Image'
 
 // Gambar dried apple dari Unsplash (bisa diganti dengan gambar sendiri)
-const DRIED_APPLE_IMG =
-  'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?auto=format&fit=crop&w=1200&q=80';
+// Jika gambar dashbord.png ada di folder 'public/image/', maka pathnya adalah '/image/dashbord.png'
+const DRIED_APPLE_IMG = '/image/dashbord.png'; // Perbaikan di sini: Tambahkan '/' di awal untuk path dari public
 
 export default function HomePage() {
   const { language } = useLanguage();
   const router = useRouter();
+
   useEffect(() => {
+    // Memastikan redirect hanya terjadi jika di client-side dan path dimulai dengan /dashboard
+    // Ini mungkin bukan bagian dari masalah gambar, tapi penting untuk diperhatikan
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
       router.replace('/');
     }
@@ -28,12 +32,15 @@ export default function HomePage() {
 
   return (
     <section id="home" className="relative min-h-screen pt-24 flex items-center justify-center overflow-hidden">
-      {/* Background image */}
+      {/* Background image menggunakan komponen Image dari next/image */}
       <div className="absolute inset-0 z-0">
-        <img
+        <Image // Perbaikan di sini: Gunakan komponen Image
           src={DRIED_APPLE_IMG}
           alt="Dried Apple Background"
-          className="w-full h-full object-cover object-center"
+          fill // Gunakan prop fill untuk mengisi div parent
+          style={{ objectFit: 'cover', objectPosition: 'center' }} // Gunakan style prop untuk object-fit
+          quality={100} // Atur kualitas gambar
+          priority // Jika ini adalah gambar latar belakang hero, berikan priority
           draggable={false}
         />
         {/* Overlay gelap/transparan */}
