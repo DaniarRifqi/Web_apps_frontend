@@ -50,7 +50,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
   // Hapus satu
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`https://web-apps-frontend-bay.vercel.app/api/history/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://webappsbackend-production.up.railway.app/api/history/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setLocalHistory(h => h.filter(item => item.id !== id));
